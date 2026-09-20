@@ -53,6 +53,16 @@ CONFIG_LTO_CLANG_THIN=y
 #
 
 #
+# CPU scheduler: BORE
+#
+# Burst-Oriented Response Enhancer 5.9.6 by Masahito Suzuki (firelzrd), ported
+# to the frozen android15-8 KMI. Per-entity state is parked in the
+# ANDROID_KABI_USE slots of struct sched_entity, which keeps the symbol CRCs
+# intact. Runtime kill switch: /proc/sys/kernel/sched_bore
+CONFIG_SCHED_BORE=y
+CONFIG_MIN_BASE_SLICE_NS=2000000
+
+#
 # Network
 #
 # BBR is already built into AOSP (CONFIG_TCP_CONG_BBR=y); this only makes it

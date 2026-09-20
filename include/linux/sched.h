@@ -566,8 +566,25 @@ struct sched_entity {
 	struct sched_avg		avg;
 #endif
 
+#ifdef CONFIG_SCHED_BORE
+	/*
+	 * BORE per-entity state, parked in the KABI reservations so struct
+	 * sched_entity keeps its frozen size (320 bytes) and every member
+	 * above keeps its offset. Under __GENKSYMS__ these expand back to the
+	 * original u64 reservations, so exported-symbol CRCs are unchanged and
+	 * the stock vendor modules keep loading. See kernel/sched/bore.c.
+	 */
+	ANDROID_KABI_USE(1, u64 burst_time);
+	ANDROID_KABI_USE(2, struct {
+		u8	prev_burst_penalty;
+		u8	curr_burst_penalty;
+		u8	burst_penalty;
+		u8	burst_score;
+	});
+#else
 	ANDROID_KABI_RESERVE(1);
 	ANDROID_KABI_RESERVE(2);
+#endif
 	ANDROID_KABI_RESERVE(3);
 	ANDROID_KABI_RESERVE(4);
 };

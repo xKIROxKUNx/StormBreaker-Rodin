@@ -1276,6 +1276,36 @@ config CHECKPOINT_RESTORE
 
 	  If unsure, say N here.
 
+config SCHED_BORE
+	bool "Burst-Oriented Response Enhancer"
+	default n
+	help
+	  In Desktop and Mobile computing, one might prefer interactive
+	  tasks to keep responsive no matter what they run in the background.
+
+	  Enabling this kernel parameter will enable the BORE CPU scheduler
+	  modification, which tries to prioritize the tasks that use short
+	  bursts of CPU time over the ones that keep the CPU busy for long
+	  stretches. Interactive work -- touch, scroll, UI -- is bursty, so
+	  this favours it over background throughput work.
+
+	  BORE by Masahito Suzuki <firelzrd@gmail.com>:
+	  https://github.com/firelzrd/bore-scheduler
+
+	  On this kernel the per-entity state is parked in the Android KABI
+	  reservations of struct sched_entity so the frozen KMI is preserved;
+	  see kernel/sched/bore.c. Runtime kill switch:
+	  /proc/sys/kernel/sched_bore
+
+	  Upstream BORE defaults this to y. Here it defaults to n on purpose:
+	  arch/arm64/configs/stormbreaker.fragment is meant to be the complete,
+	  auditable list of what this kernel changes relative to stock AOSP, and
+	  a scheduler swap that switches itself on from a Kconfig default would
+	  not appear in that list. Building plain gki_defconfig must still give a
+	  stock-equivalent kernel.
+
+	  If unsure, say N here.
+
 config SCHED_AUTOGROUP
 	bool "Automatic process group scheduling"
 	select CGROUPS
