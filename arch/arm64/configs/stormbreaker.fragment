@@ -85,10 +85,17 @@ CONFIG_STORMBREAKER_IOSCHED_REASSERT=y
 #
 # Network
 #
-# BBR is already built into AOSP (CONFIG_TCP_CONG_BBR=y); this only makes it
-# the default. No size cost.
-CONFIG_DEFAULT_BBR=y
-CONFIG_DEFAULT_TCP_CONG="bbr"
+# BBRv3, by Google, ported from github.com/google/bbr (branch
+# bbr-v3-2026-09-16-01) to this tree. BBRv3 is NOT in mainline nor in
+# net-next -- v1 is all upstream has -- so this is an out-of-tree port, with
+# the divergences documented at the top of net/ipv4/tcp_bbr3.c.
+#
+# BBRv1 stays compiled (gki_defconfig:162 has CONFIG_TCP_CONG_BBR=y) so the
+# two can be selected at runtime on one kernel:
+#   sysctl net.ipv4.tcp_congestion_control=bbr    (or bbr3)
+CONFIG_TCP_CONG_BBR3=y
+CONFIG_DEFAULT_BBR3=y
+CONFIG_DEFAULT_TCP_CONG="bbr3"
 
 #
 # Filesystem

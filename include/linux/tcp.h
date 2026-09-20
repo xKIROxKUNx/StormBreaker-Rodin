@@ -455,7 +455,21 @@ struct tcp_sock {
 	struct saved_syn *saved_syn;
 
 	ANDROID_OEM_DATA(1);
-	ANDROID_KABI_RESERVE(1);
+	/*
+	 * BBRv3 needs two per-connection flags. Upstream adds them as bits in
+	 * an existing bitfield, but all three u8 bitfields above are exactly
+	 * full in this kernel, so that would grow struct tcp_sock and move the
+	 * KMI. They live in the KABI reservation instead, which expands back to
+	 * the original u64 under __GENKSYMS__: no size change, no CRC change.
+	 * One byte of the eight is used; the rest stays available.
+	 */
+	ANDROID_KABI_USE(1, struct {
+		/* One declaration per member: a comma here would be read as a
+		 * macro argument separator.
+		 */
+		u8	fast_ack_mode:1;	/* ack ASAP if >1 rcv_mss received? */
+		u8	tlp_orig_data_app_limited:1; /* app-limited before TLP rtx? */
+	});
 };
 
 enum tsq_enum {

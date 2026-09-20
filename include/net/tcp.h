@@ -841,6 +841,15 @@ static inline u32 tcp_stamp_us_delta(u64 t1, u64 t0)
 	return max_t(s64, t1 - t0, 0);
 }
 
+/* Same, for the u32 timestamps kept in tcp_skb_cb->tx, which are narrower so
+ * that BBRv3's per-skb in_flight and lost counters fit the 24 bytes the tx
+ * block has to live in. Wrap-around is handled by the signed difference.
+ */
+static inline u32 tcp_stamp32_us_delta(u32 t1, u32 t0)
+{
+	return max_t(s32, t1 - t0, 0);
+}
+
 static inline u32 tcp_skb_timestamp(const struct sk_buff *skb)
 {
 	return tcp_ns_to_ts(skb->skb_mstamp_ns);
@@ -916,9 +925,14 @@ struct tcp_skb_cb {
 			/* pkts S/ACKed so far upon tx of skb, incl retrans: */
 			__u32 delivered;
 			/* start of send pipeline phase */
-			u64 first_tx_mstamp;
+			u32 first_tx_mstamp;
 			/* when we reached the "delivered" count */
-			u64 delivered_mstamp;
+			u32 delivered_mstamp;
+#define TCPCB_IN_FLIGHT_BITS 20
+#define TCPCB_IN_FLIGHT_MAX ((1U << TCPCB_IN_FLIGHT_BITS) - 1)
+			u32 in_flight:20,   /* packets in flight at transmit */
+			    unused2:12;
+			u32 lost;	/* packets lost so far upon tx of skb */
 		} tx;   /* only used for outgoing skbs */
 		union {
 			struct inet_skb_parm	h4;
@@ -1022,6 +1036,9 @@ enum tcp_ca_event {
 	CA_EVENT_LOSS,		/* loss timeout */
 	CA_EVENT_ECN_NO_CE,	/* ECT set, but not CE marked */
 	CA_EVENT_ECN_IS_CE,	/* received CE marked IP packet */
+#ifndef __GENKSYMS__
+	CA_EVENT_TLP_RECOVERY,	/* a lost segment was repaired by TLP probe */
+#endif
 };
 
 /* Information about inbound ACK, passed to cong_ops->in_ack_event() */
@@ -1079,6 +1096,20 @@ struct rate_sample {
 	bool is_app_limited;	/* is sample from packet with bubble in pipe? */
 	bool is_retrans;	/* is sample from retransmission? */
 	bool is_ack_delayed;	/* is this (likely) a delayed ACK? */
+	/* BBRv3 additions, appended and hidden from genksyms for the same two
+	 * reasons as skb_marked_lost() below: appending keeps every existing
+	 * member's offset, and hiding keeps the CRC. This struct is reachable
+	 * from struct net through tcp_congestion_ops, so a visible change here
+	 * moves the CRC of the whole networking stack. It is only ever
+	 * allocated on the stack by tcp_ack(), never by a module.
+	 */
+#ifndef __GENKSYMS__
+	u32  prior_lost;	/* tp->lost at "prior_mstamp" */
+	u32  tx_in_flight;	/* packets in flight at starting timestamp */
+	s32  lost;		/* number of packets lost over interval */
+	bool is_acking_tlp_retrans_seq;	/* ACKed a TLP retransmit sequence? */
+	bool is_ece;		/* did this ACK have ECN marked? */
+#endif
 };
 
 struct tcp_congestion_ops {
@@ -1131,6 +1162,22 @@ struct tcp_congestion_ops {
 	void (*init)(struct sock *sk);
 	/* cleanup private data  (optional) */
 	void (*release)(struct sock *sk);
+
+	/* react to a specific lost skb (optional). Upstream BBRv3 puts this
+	 * between cong_control and undo_cwnd; it lives at the end here so no
+	 * existing member changes offset. It is off the fast path -- one
+	 * indirect call per skb marked lost, not per ACK.
+	 *
+	 * Hidden from genksyms: struct net reaches this type through
+	 * netns_ipv4.tcp_congestion_control, so every exported networking
+	 * symbol expands it and a visible change here would move the CRC of
+	 * the whole stack, which no vendor module would survive. The reserve
+	 * macros in android_kabi.h do the same thing internally; there is no
+	 * reservation in this struct to consume.
+	 */
+#ifndef __GENKSYMS__
+	void (*skb_marked_lost)(struct sock *sk, const struct sk_buff *skb);
+#endif
 } ____cacheline_aligned_in_smp;
 
 int tcp_register_congestion_control(struct tcp_congestion_ops *type);
@@ -1194,6 +1241,7 @@ void tcp_rate_skb_delivered(struct sock *sk, struct sk_buff *skb,
 void tcp_rate_gen(struct sock *sk, u32 delivered, u32 lost,
 		  bool is_sack_reneg, struct rate_sample *rs);
 void tcp_rate_check_app_limited(struct sock *sk);
+void tcp_set_tx_in_flight(struct sock *sk, struct sk_buff *skb);
 
 static inline bool tcp_skb_sent_after(u64 t1, u64 t2, u32 seq1, u32 seq2)
 {
