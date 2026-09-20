@@ -53,6 +53,14 @@ CONFIG_LTO_CLANG_THIN=y
 #
 
 #
+# Network
+#
+# BBR is already built into AOSP (CONFIG_TCP_CONG_BBR=y); this only makes it
+# the default. No size cost.
+CONFIG_DEFAULT_BBR=y
+CONFIG_DEFAULT_TCP_CONG="bbr"
+
+#
 # Filesystem
 #
 # xattr on tmpfs: a prerequisite for several root/SELinux flows and for
