@@ -1,0 +1,9 @@
+#!/bin/sh
+# A dd that reads fine but refuses to write to a block-like target, the way a
+# vendor kernel or an unsupported flag makes it fail.
+for a in "$@"; do
+    case "$a" in
+        of=*blockdir/*) echo "dd: $a: Operation not permitted" >&2; exit 1 ;;
+    esac
+done
+exec /usr/bin/dd "$@"

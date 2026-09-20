@@ -1,0 +1,6 @@
+#!/bin/sh
+case "$1" in
+  unpack) : > kernel; exit 0 ;;
+  repack) cp -f "$SB_NEWIMG" "$3"; exit 0 ;;
+esac
+exit 0

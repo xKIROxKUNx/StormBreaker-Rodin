@@ -1,0 +1,14 @@
+INSTALLER TESTS
+
+    ./run.sh [stock-boot.img]
+
+The image must be a full dump of a real boot partition carrying an AVB footer: the tests relocate that device's own footer and vbmeta blob, so a synthetic image would not prove anything. Defaults to dist/boot-stock.img.
+
+    test-avb-layout     places the footer and vbmeta blob for a kernel that is larger, smaller, tail-appended, oversized, or a tight fit
+    test-avb-degraded   partition with no footer, footer pointing nowhere, and the rollback path after a simulated write failure
+    test-kernel-format  an lz4_legacy device and a gzip device, both fed the raw Image, plus the pre-compressed payload that must be refused
+    test-scenarios      end-to-end runs of flasher.sh with stubbed getprop/uname/blockdev/magiskboot: unknown codename, incompatible KMI, and a package whose modules are broken or missing
+    test-dd-parity      the probe uses the same dd invocation as the real write; a dd that refuses is caught before the dump; so is a dd that accepts the write and drops it
+    test-footer-guard   mutation test: injects the 32-bit shell encoder that a real mksh produced and requires the guard to refuse and roll back
+
+Nothing here touches a real device: the "partition" is a copy of a stock boot image in a temporary directory, checked afterwards in Python. The AVB code is extracted from flasher.sh at run time, so the tests always exercise what ships.

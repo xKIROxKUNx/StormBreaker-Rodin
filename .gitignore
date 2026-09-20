@@ -169,3 +169,31 @@ sphinx_*/
 
 # Rust analyzer configuration
 /rust-project.json
+
+#
+# StormBreaker
+#
+# Build trees and packaged output
+/out/
+/out-*/
+/dist/
+
+# Build products that end up in the installer source directory. The package is
+# always filled from the build tree, never from these.
+/installer/Image
+/installer/Image.gz
+/installer/Image.lz4
+/installer/version
+
+# Byte-compiled helper scripts
+__pycache__/
+*.pyc
+
+# Root solutions are not part of this repository: the kernel ships without one
+# and each build can add whatever it wants. This covers the upstream tree, the
+# symlink that wires it in, its configuration fragment, and the working-tree
+# area that keeps all of it out of the way.
+/KernelSU/
+/drivers/kernelsu
+/arch/arm64/configs/stormbreaker-sukisu.fragment
+/local/

@@ -1,0 +1,6 @@
+#!/bin/sh
+case "$1" in
+  --getsize64) wc -c < "$2" ;;
+  --getro)     echo 0 ;;
+  *)           exit 0 ;;
+esac

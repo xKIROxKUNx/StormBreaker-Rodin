@@ -1,0 +1,3 @@
+#!/bin/sh
+[ "$1" = "-r" ] && { printf '%s\n' "${SB_UNAME_R:-0.0.0}"; exit 0; }
+/usr/bin/uname "$@"

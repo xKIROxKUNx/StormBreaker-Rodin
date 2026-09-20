@@ -1,0 +1,4 @@
+#!/bin/sh
+# Records every invocation, then does the real thing.
+[ -n "$SB_DDLOG" ] && echo "$*" >> "$SB_DDLOG"
+exec /usr/bin/dd "$@"

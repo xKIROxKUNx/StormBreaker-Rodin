@@ -1,0 +1,84 @@
+#!/bin/sh
+# Universal Entrypoint Wrapper for StormBreaker Modular Flasher
+# Fully compliant with Android Recovery OTA and Booted Kernel Flasher Apps (KernelFlasher, FKM, EXKM)
+
+# Locate best available shell
+if [ -x /sbin/sh ]; then
+    CURRENT_SHELL="/sbin/sh"
+elif [ -x /system/bin/sh ]; then
+    CURRENT_SHELL="/system/bin/sh"
+elif [ -x /bin/sh ]; then
+    CURRENT_SHELL="/bin/sh"
+else
+    CURRENT_SHELL="sh"
+fi
+
+export OUTFD="${2:-1}"
+export ZIPFILE="$3"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export SCRIPT_DIR
+
+# 1. Determine if the installer zip is already unpacked
+ZIP_ROOT=""
+if [ -f "$SCRIPT_DIR/../../../../flasher.sh" ]; then
+    ZIP_ROOT="$(cd "$SCRIPT_DIR/../../../.." && pwd)"
+elif [ -f "$SCRIPT_DIR/flasher.sh" ]; then
+    ZIP_ROOT="$SCRIPT_DIR"
+elif [ -f "./flasher.sh" ]; then
+    ZIP_ROOT="$(pwd)"
+fi
+
+# 2. If not unpacked (e.g. KernelFlasher or FKM extracted only update-binary)
+if [ -z "$ZIP_ROOT" ] || [ ! -f "$ZIP_ROOT/flasher.sh" ]; then
+    # Choose writable destination
+    if [ -n "$AKHOME" ]; then
+        WORKDIR="$AKHOME"
+    elif [ -d "/tmp" ] && [ -w "/tmp" ]; then
+        WORKDIR="/tmp/stormbreaker_installer"
+    elif [ -d "/data/local/tmp" ] && [ -w "/data/local/tmp" ]; then
+        WORKDIR="/data/local/tmp/stormbreaker_installer"
+    else
+        WORKDIR="$SCRIPT_DIR/tmp/stormbreaker_installer"
+    fi
+
+    mkdir -p "$WORKDIR" 2>/dev/null || true
+
+    # Find extraction tool
+    UNZIP_BIN=""
+    if [ -x "$SCRIPT_DIR/busybox" ]; then
+        UNZIP_BIN="$SCRIPT_DIR/busybox unzip -qo"
+    elif command -v unzip >/dev/null 2>&1; then
+        UNZIP_BIN="unzip -qo"
+    elif [ -x "/data/adb/magisk/busybox" ]; then
+        UNZIP_BIN="/data/adb/magisk/busybox unzip -qo"
+    elif [ -x "/data/adb/ksu/bin/busybox" ]; then
+        UNZIP_BIN="/data/adb/ksu/bin/busybox unzip -qo"
+    elif [ -x "/sbin/busybox" ]; then
+        UNZIP_BIN="/sbin/busybox unzip -qo"
+    elif command -v toybox >/dev/null 2>&1 && toybox unzip --help >/dev/null 2>&1; then
+        UNZIP_BIN="toybox unzip -qo"
+    fi
+
+    if [ -z "$UNZIP_BIN" ] || [ ! -f "$ZIPFILE" ]; then
+        echo "ui_print XX [ERROR] Cannot extract the package: no unzip tool found."
+        exit 1
+    fi
+    if ! $UNZIP_BIN "$ZIPFILE" -d "$WORKDIR"; then
+        echo "ui_print XX [ERROR] Extracting $ZIPFILE failed."
+        exit 1
+    fi
+
+    ZIP_ROOT="$WORKDIR"
+    # The engine may delete this tree on cleanup: we created it.
+    export SB_TEMP_ROOT="$WORKDIR"
+fi
+
+export ZIP_ROOT
+cd "$ZIP_ROOT" || exit 1
+
+# Ensure executable permissions
+chmod -R 755 tools modules extras 2>/dev/null || true
+chmod +x flasher.sh anykernel.sh config.sh 2>/dev/null || true
+
+# Execute the modular engine
+exec "$CURRENT_SHELL" ./flasher.sh "$@"

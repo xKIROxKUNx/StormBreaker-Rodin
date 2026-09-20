@@ -1,0 +1,14 @@
+DROP-IN ADD-ONS
+
+Every *.sh file in this directory is sourced by the engine after the kernel has been written and verified, in filename order, with the ui_* helpers and these variables already set:
+
+    BOOT_BLOCK      block device that was written
+    PAYLOAD_SIZE    bytes of boot image written
+    SLOT            active A/B slot suffix, empty on slotless devices
+    KERNEL_NAME     from config.sh
+    KERNEL_STRING   from config.sh
+    TARGET_PARTITION    from config.sh
+
+Use them for things that are genuinely optional: installing a companion module, writing a tuning profile, printing project-specific notes. An empty directory is the normal case, and a broken add-on is skipped with a warning instead of failing the install.
+
+Anything that must happen for the kernel to work belongs in the engine or in modules/, not here.

@@ -1,0 +1,10 @@
+#!/bin/sh
+# A dd that takes writes to the block and drops them, the way a write-protected
+# UFS logical unit does: the data is consumed, the byte count is reported, the
+# exit status is 0, and nothing reaches the device.
+for a in "$@"; do
+    case "$a" in of=*blockdir/*) a=of=/dev/null ;; esac
+    set -- "$@" "$a"
+    shift
+done
+exec /usr/bin/dd "$@"
