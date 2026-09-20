@@ -762,6 +762,110 @@ static int elevator_change(struct request_queue *q, const char *elevator_name)
 	return ret;
 }
 
+#ifdef CONFIG_STORMBREAKER_IOSCHED_REASSERT
+/*
+ * One-shot re-assertion of the ADIOS I/O scheduler after userspace has settled.
+ *
+ * Why this is here at all: CONFIG_MQ_IOSCHED_DEFAULT_ADIOS only decides what
+ * the kernel picks when a queue is created. On the target device
+ * /vendor/etc/init/hw/init.mt6899.rc then does
+ *
+ *     on property:sys.boot_completed=1
+ *         write /sys/block/sda/queue/scheduler mq-deadline
+ *
+ * which is the last trigger of the boot sequence, so the kernel's choice never
+ * survives. /vendor is read-only EROFS under dm-verity and vbmeta_vendor is a
+ * chain partition, so that .rc cannot be edited without breaking the AVB
+ * chain, and no unprivileged userspace process can write the sysfs node --
+ * SELinux denies the shell domain even a directory search on sysfs_devices_block.
+ * A user without root therefore has no way to get the measured behaviour.
+ *
+ * Measured on the device (4K random read latency, medians of repeated runs,
+ * three background writers -- the loaded-phone case):
+ *
+ *     scheduler      iops   p95   p99  p99.9
+ *     adios         14511   177   359    639
+ *     mq-deadline   12110   245   408    856
+ *
+ * That is +19.8% IOPS and -25.4% at p99.9, the percentile a user perceives as
+ * an occasional stutter. Without write pressure the two are within noise, which
+ * is consistent with what ADIOS does: it arbitrates reads against writes, so
+ * with nothing to arbitrate there is nothing to gain.
+ *
+ * Deliberate limits on this override:
+ *   - It acts only on queues where the vendor's mq-deadline is the ACTIVE
+ *     scheduler. A queue left at "none" was put there on purpose and is not
+ *     touched.
+ *   - It polls for a bounded window (~3 minutes) and stops for good. The
+ *     vendor's two writes live in different files behind different triggers --
+ *     init.mt6899.power.rc hits sda early, init.mt6899.rc hits sdc only on
+ *     sys.boot_completed=1 -- so a single early attempt wins one and loses the
+ *     other, which is exactly what happened on the first try. After the window
+ *     closes, any change by userspace, a tuning app or the user stands; the
+ *     kernel does not fight back.
+ *   - It announces itself in dmesg, so the change is discoverable rather than
+ *     a mystery for whoever debugs this later.
+ */
+#define SB_TARGET	"adios"
+#define SB_VENDOR	"mq-deadline"
+#define SB_INTERVAL	(15 * HZ)
+#define SB_MAX_TRIES	12		/* ~3 minutes, then give up quietly */
+
+static void stormbreaker_reassert_fn(struct work_struct *work);
+static DECLARE_DELAYED_WORK(stormbreaker_reassert, stormbreaker_reassert_fn);
+static int stormbreaker_tries;
+static bool stormbreaker_announced;
+
+static void stormbreaker_reassert_fn(struct work_struct *work)
+{
+	struct class_dev_iter iter;
+	struct device *dev;
+	bool switched = false;
+
+	class_dev_iter_init(&iter, &block_class, NULL, &disk_type);
+	while ((dev = class_dev_iter_next(&iter))) {
+		struct gendisk *disk = dev_to_disk(dev);
+		struct request_queue *q;
+
+		if (!disk)
+			continue;
+		q = disk->queue;
+		if (!q || !blk_queue_registered(q))
+			continue;
+
+		mutex_lock(&q->sysfs_lock);
+		if (q->elevator && elevator_match(q->elevator->type, SB_VENDOR) &&
+		    !elevator_change(q, SB_TARGET))
+			switched = true;
+		mutex_unlock(&q->sysfs_lock);
+	}
+	class_dev_iter_exit(&iter);
+
+	if (switched && !stormbreaker_announced) {
+		pr_info("StormBreaker: Switching I/O scheduler to ADIOS\n");
+		stormbreaker_announced = true;
+	}
+
+	/*
+	 * Keep looking for the rest of the window even after a success. The
+	 * vendor does not write every queue at the same moment, and the late
+	 * one lands on boot_completed, whose timing varies with boot duration.
+	 * Stopping at the first switch means winning sda and losing sdc -- the
+	 * disk that actually holds userdata. Announce once, keep watching, then
+	 * stop for good.
+	 */
+	if (++stormbreaker_tries < SB_MAX_TRIES)
+		schedule_delayed_work(&stormbreaker_reassert, SB_INTERVAL);
+}
+
+static int __init stormbreaker_reassert_init(void)
+{
+	schedule_delayed_work(&stormbreaker_reassert, SB_INTERVAL);
+	return 0;
+}
+late_initcall(stormbreaker_reassert_init);
+#endif /* CONFIG_STORMBREAKER_IOSCHED_REASSERT */
+
 ssize_t elv_iosched_store(struct request_queue *q, const char *buf,
 			  size_t count)
 {

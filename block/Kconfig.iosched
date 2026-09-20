@@ -38,6 +38,30 @@ config MQ_IOSCHED_DEFAULT_ADIOS
 	help
 	  Enable the ADIOS I/O scheduler as the default scheduler for MQ I/O.
 
+config STORMBREAKER_IOSCHED_REASSERT
+	bool "StormBreaker: re-assert ADIOS once after boot"
+	depends on MQ_IOSCHED_ADIOS=y
+	default n
+	help
+	  CONFIG_MQ_IOSCHED_DEFAULT_ADIOS only sets what the kernel picks when a
+	  queue is created. On devices whose vendor init writes mq-deadline on
+	  sys.boot_completed=1 -- the last trigger of the boot sequence -- the
+	  kernel's choice never survives, and a user without root cannot change
+	  it: SELinux denies the shell domain even a directory search on
+	  sysfs_devices_block.
+
+	  With this enabled, the kernel waits for userspace to settle and then
+	  switches back to ADIOS exactly once, on queues where mq-deadline is the
+	  active scheduler, and says so in dmesg. Any later change by userspace
+	  or by the user stands.
+
+	  This overrides a deliberate vendor setting, so enable it only where a
+	  measurement justifies it. On the target device (POCO rodin, MT6899)
+	  4K random reads under write pressure showed +19.8% IOPS and -25.4% at
+	  p99.9 against mq-deadline.
+
+	  If unsure, say N here.
+
 config IOSCHED_BFQ
 	tristate "BFQ I/O scheduler"
 	select BLK_ICQ

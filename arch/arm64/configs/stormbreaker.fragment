@@ -71,6 +71,17 @@ CONFIG_MIN_BASE_SLICE_NS=2000000
 CONFIG_MQ_IOSCHED_ADIOS=y
 # What the kernel picks when a queue is created.
 CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y
+# ... which the vendor overrides: init.mt6899.rc writes "mq-deadline" on the
+# sys.boot_completed=1 trigger, the last one of the boot. Without root the user
+# cannot undo it either -- SELinux denies the shell domain even a directory
+# search on sysfs_devices_block -- so the kernel re-asserts once, after
+# userspace has settled, and says so in dmesg. Justified by measurement on the
+# device: random 4K reads with three background writers gave +19.8% IOPS and
+# -25.4% at p99.9 against mq-deadline. With no write pressure the two tie,
+# which is the coherent result: ADIOS arbitrates reads against writes, and with
+# no writes there is nothing to arbitrate.
+CONFIG_STORMBREAKER_IOSCHED_REASSERT=y
+
 #
 # Network
 #
