@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# StormBreaker CONTROL fragment -- a bisection baseline, not a release config.
+#
+# This is stock AOSP gki_defconfig plus the two things a self-built GKI kernel
+# cannot go without: an identifiable version string and module-signature
+# protection off (so the device's stock vendor modules are accepted).
+#
+# Nothing else. No BORE, no ADIOS, no ThinLTO, no BBR.
+#
+# Purpose: separate "this device rejects any kernel I build" from "one of the
+# StormBreaker features breaks the boot". If this image bootloops too, the
+# problem is AVB/dm-verity or the flashing method, and no amount of scheduler
+# debugging will help. If it boots, re-enable features one at a time.
+
+CONFIG_LOCALVERSION="-SBcontrol-4k"
+# CONFIG_LOCALVERSION_AUTO is not set
+
+# CONFIG_MODULE_SIG_PROTECT is not set

@@ -1,0 +1,60 @@
+# SPDX-License-Identifier: GPL-2.0
+#
+# StormBreaker -- configuration fragment applied on top of AOSP's gki_defconfig.
+#
+# Every line here is a deliberate choice. gki_defconfig itself is never edited,
+# so any default upstream adds or changes keeps applying across an LTS rebase.
+# This file IS the complete and honest list of what StormBreaker changes
+# relative to AOSP.
+#
+# Usage with plain make:
+#   make O=out ARCH=arm64 LLVM=1 gki_defconfig
+#   scripts/kconfig/merge_config.sh -m -O out out/.config \
+#       arch/arm64/configs/stormbreaker.fragment
+#   make O=out ARCH=arm64 LLVM=1 olddefconfig
+#
+# Base: android15-6.6 @ 6.6.142
+
+#
+# Identity
+#
+# AOSP's "-4k" marks the page size; the 16k variant is a separate build.
+# Keeping the marker is what stops a 4k and a 16k build from looking alike in
+# uname.
+CONFIG_LOCALVERSION="-StormBreaker-4k"
+# Turns off the automatic suffix ("+" / git describe) without having to patch
+# scripts/setlocalversion.
+# CONFIG_LOCALVERSION_AUTO is not set
+
+#
+# Loading the vendor modules
+#
+# Without this a rebuilt GKI rejects the stock signed modules, which is the
+# device's entire driver set. A requirement, not an optimisation.
+# CONFIG_MODULE_SIG_PROTECT is not set
+
+#
+# Build
+#
+# ThinLTO: a real gain in both performance and size, and what Google ships in
+# production. Needs HAS_LTO_CLANG (a suitable clang) and
+# ARCH_SUPPORTS_LTO_CLANG_THIN.
+# CONFIG_LTO_NONE is not set
+CONFIG_LTO_CLANG_THIN=y
+
+#
+# Power
+#
+# NOTHING HERE, on purpose. The rodin bootloader already passes
+# "rcu_nocbs=all" and "rcutree.enable_rcu_lazy" on the vendor_boot cmdline, so
+# CONFIG_RCU_NOCB_CPU_DEFAULT_ALL and RCU_LAZY_DEFAULT_OFF=n would be no-ops on
+# this hardware. Setting them would only make this fragment claim something it
+# does not deliver.
+#
+
+#
+# Filesystem
+#
+# xattr on tmpfs: a prerequisite for several root/SELinux flows and for
+# overlayfs on top of tmpfs.
+CONFIG_TMPFS_XATTR=y
