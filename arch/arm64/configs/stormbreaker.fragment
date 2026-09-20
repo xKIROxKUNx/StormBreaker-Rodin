@@ -97,6 +97,19 @@ CONFIG_TCP_CONG_BBR3=y
 CONFIG_DEFAULT_BBR3=y
 CONFIG_DEFAULT_TCP_CONG="bbr3"
 
+# Queueing discipline default. Nothing in this ROM sets one, so every
+# interface falls back to pfifo_fast.
+#
+# NET_SCH_FQ_CODEL=y alone does not move the default. net/sched/Kconfig gates
+# the whole "Default queuing discipline" choice behind NET_SCH_DEFAULT, which
+# AOSP leaves off, so DEFAULT_NET_SCH falls through to "pfifo_fast".
+#
+# For the wlan path this is the only queue we have: CONFIG_CFG80211 is not set
+# in this kernel, so there is no mac80211 underneath with its own internal
+# fq_codel. BBR does not need fq to pace here -- it uses TCP internal pacing.
+CONFIG_NET_SCH_DEFAULT=y
+CONFIG_DEFAULT_FQ_CODEL=y
+
 #
 # Filesystem
 #
