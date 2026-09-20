@@ -572,6 +572,23 @@ static struct elevator_type *elevator_get_default(struct request_queue *q)
 	if (q->tag_set->flags & BLK_MQ_F_NO_SCHED_BY_DEFAULT)
 		return NULL;
 
+#ifdef CONFIG_MQ_IOSCHED_DEFAULT_ADIOS
+	{
+		struct elevator_type *e;
+
+		/*
+		 * ADIOS advertises no elevator_features, so elevator_find_get()
+		 * refuses it on queues that require some (e.g. zoned devices
+		 * needing ELEVATOR_F_ZBD_SEQ_WRITE). Fall through to
+		 * mq-deadline there rather than leaving the queue with no
+		 * scheduler at all.
+		 */
+		e = elevator_find_get(q, "adios");
+		if (e)
+			return e;
+	}
+#endif
+
 	if (q->nr_hw_queues != 1 &&
 	    !blk_mq_is_shared_tags(q->tag_set->flags))
 		return NULL;

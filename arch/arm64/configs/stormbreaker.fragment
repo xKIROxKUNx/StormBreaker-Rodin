@@ -63,6 +63,15 @@ CONFIG_SCHED_BORE=y
 CONFIG_MIN_BASE_SLICE_NS=2000000
 
 #
+# I/O scheduler: ADIOS
+#
+# Adaptive Deadline I/O Scheduler 3.3.0 by Masahito Suzuki (firelzrd),
+# backported from 6.12 to 6.6. Has to be =y: it uses private block layer
+# headers and symbols that are not on the KMI symbol list.
+CONFIG_MQ_IOSCHED_ADIOS=y
+# What the kernel picks when a queue is created.
+CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y
+#
 # Network
 #
 # BBR is already built into AOSP (CONFIG_TCP_CONG_BBR=y); this only makes it
