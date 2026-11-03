@@ -37,3 +37,10 @@ In-house modular installer replacing AnyKernel3, for both recovery and flashing 
 
 - **TCP BBRv3** added and set as the default congestion control.
 - **fq_codel** configured and enabled as the default queueing discipline.
+
+---
+
+## 0.5 — Linux 6.6.143 and KernelSU-Next
+
+- Synced to AOSP `android15-6.6` at **6.6.143**, merged on top of the previous base so the published history is not rewritten. KMI `android15-8` unchanged: no symbol CRC moved.
+- The root package is now built with **KernelSU-Next v3.4.2**, replacing SukiSU-Ultra. *KernelSU-Next project.* Its wiring stays outside this repository.

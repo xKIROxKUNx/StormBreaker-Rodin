@@ -5,9 +5,9 @@
   ___) | || (_) | |  | | | | | | |_) | | |  __/ (_| |   <  __/ |   
  |____/ \__\___/|_|  |_| |_| |_|____/|_|  \___|\__,_|_|\_\___|_|   
  
-  Kernel: StormBreaker 0.4
-  Platform: 6.6.142
+  Kernel: StormBreaker 0.5
+  Platform: 6.6.143
   Features: BORE 5.9.6 | ADIOS 3.3.0 | BBRv3
   Changelog: 
-  - *TCP BBRv3* added and set as the default congestion control.
-  - *fq_codel* configured and enabled as the default queueing discipline.
+  - *Linux 6.6.143* -- AOSP android15-6.6 base updated, KMI unchanged.
+  - *KernelSU-Next v3.4.2* now builds the root package.
