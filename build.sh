@@ -24,7 +24,10 @@ DIST_DIR="$KERNEL_DIR/dist"
 FRAGMENTS=()
 DEFAULT_FRAGMENT="arch/arm64/configs/stormbreaker.fragment"
 BASE_DEFCONFIG="gki_defconfig"
-TOOLCHAIN_DIR="${TOOLCHAIN_DIR:-$HOME/Desenvolvimento/toolchains}"
+# System-wide by default so one download serves every tree on the host. The
+# directory must be writable by the user running the build (it downloads into
+# it on first use); override with TOOLCHAIN_DIR=... for a private cache.
+TOOLCHAIN_DIR="${TOOLCHAIN_DIR:-/opt/toolchains}"
 CLANG_VERSION="$(sed -n 's/^CLANG_VERSION=//p' build.config.constants)"
 CLANG_DIR="$TOOLCHAIN_DIR/clang-$CLANG_VERSION"
 CLANG_URL="https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/heads/android15-release/clang-$CLANG_VERSION.tar.gz"
@@ -195,6 +198,10 @@ if (( ${#missing[@]} )); then
 	printf '  - %s\n' "${missing[@]}" >&2
 	if command -v pacman >/dev/null; then
 		printf '\ntry: sudo pacman -S --needed %s\n' "${missing[*]}" >&2
+	elif command -v apt-get >/dev/null; then
+		# Debian names differ: pahole ships in dwarves, and mkbootimg /
+		# unpack_bootimg in mkbootimg. libelf-dev is needed by objtool/BTF.
+		printf '\ntry: sudo apt-get install flex bison lz4 dwarves libelf-dev libssl-dev bc cpio rsync mkbootimg\n' >&2
 	fi
 	die "install them and re-run"
 fi
