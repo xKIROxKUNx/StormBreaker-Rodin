@@ -44,3 +44,9 @@ In-house modular installer replacing AnyKernel3, for both recovery and flashing 
 
 - Synced to AOSP `android15-6.6` at **6.6.143**, merged on top of the previous base so the published history is not rewritten. KMI `android15-8` unchanged: no symbol CRC moved.
 - The root package is now built with **KernelSU-Next v3.4.2**, replacing SukiSU-Ultra. *KernelSU-Next project.* Its wiring stays outside this repository.
+
+---
+
+## 0.6 — Low-battery CPU floor
+
+- **CPU frequency floor for the vendor low-battery cap.** At 1% battery the vendor thermal daemon caps two CPU clusters at 800 MHz and keeps the cap after the charger is plugged in, which made the phone stall right after plugging. While the battery is at or below 5%, the kernel now applies that cap as 1.2 GHz. Every thermal limit is preserved, and the floor steps aside when the device runs warm. *StormBreaker.*

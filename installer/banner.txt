@@ -5,9 +5,9 @@
   ___) | || (_) | |  | | | | | | |_) | | |  __/ (_| |   <  __/ |   
  |____/ \__\___/|_|  |_| |_| |_|____/|_|  \___|\__,_|_|\_\___|_|   
  
-  Kernel: StormBreaker 0.5
+  Kernel: StormBreaker 0.6
   Platform: 6.6.143
   Features: BORE 5.9.6 | ADIOS 3.3.0 | BBRv3
   Changelog: 
-  - *Linux 6.6.143* -- AOSP android15-6.6 base updated, KMI unchanged.
-  - *KernelSU-Next v3.4.2* now builds the root package.
+  - *Low-battery CPU floor* -- the vendor's 800 MHz cap at 1%
+    battery is applied as 1.2 GHz, thermal limits preserved.
