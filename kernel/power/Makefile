@@ -9,6 +9,7 @@ endif
 KASAN_SANITIZE_snapshot.o	:= n
 
 obj-y				+= qos.o
+obj-$(CONFIG_STORMBREAKER_LOWBAT_FREQ_FLOOR) += stormbreaker_lbf.o
 obj-$(CONFIG_PM)		+= main.o
 obj-$(CONFIG_VT_CONSOLE_SLEEP)	+= console.o
 obj-$(CONFIG_FREEZER)		+= process.o

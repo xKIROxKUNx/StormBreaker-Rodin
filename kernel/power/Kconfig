@@ -350,3 +350,29 @@ config ENERGY_MODEL
 	  The exact usage of the energy model is subsystem-dependent.
 
 	  If in doubt, say N.
+
+config STORMBREAKER_LOWBAT_FREQ_FLOOR
+	bool "StormBreaker: CPU frequency floor for the vendor low-battery cap"
+	depends on CPU_FREQ && MODULES && POWER_SUPPLY=y && THERMAL=y
+	default n
+	help
+	  On the POCO rodin (MT6899) the vendor thermal daemon caps two CPU
+	  clusters at 800 MHz and offlines two cores when the battery reaches
+	  1%, and keeps the cap after the charger is plugged in until the
+	  percentage climbs. The cap reaches the kernel as a frequency QoS
+	  request from the vendor module mi_thermal_interface.
+
+	  With this enabled, while the battery is at or below 5%, requests
+	  from that module asking for less than 1.2 GHz are applied as
+	  1.2 GHz. Thermal limits are preserved: the kernel's own limiters
+	  are never touched, and the floor steps aside whenever the daemon's
+	  virtual sensor, recomputed here, reaches 44 C, below the point where
+	  any of its thermal rules asks for less than 1.2 GHz. Core offlining
+	  is left alone.
+
+	  Measured on the device with the cap reproduced: cold start of
+	  Settings went from 1100 ms at 800 MHz to 687 ms at 1.2 GHz.
+
+	  Runtime kill switch: /sys/module/stormbreaker_lbf/parameters/enable
+
+	  If unsure, say N here.

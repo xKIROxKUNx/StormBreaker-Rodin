@@ -83,6 +83,18 @@ CONFIG_MQ_IOSCHED_DEFAULT_ADIOS=y
 CONFIG_STORMBREAKER_IOSCHED_REASSERT=y
 
 #
+# CPU frequency floor for the vendor low-battery cap
+#
+# mi_thermald's GL-MONITOR-BCL rule caps the cpu0 and cpu4 clusters at
+# 800 MHz at 1% battery and keeps the cap after the charger is plugged in,
+# which is when the release of battery saver starts every app's deferred work.
+# This lifts that one step to 1.2 GHz while the battery is at or below 5%,
+# with every thermal limit preserved (see kernel/power/stormbreaker_lbf.c).
+# Measured: cold start of Settings at 1100 ms with the cap, 687 ms with the
+# floor. Runtime kill switch: /sys/module/stormbreaker_lbf/parameters/enable
+CONFIG_STORMBREAKER_LOWBAT_FREQ_FLOOR=y
+
+#
 # Network
 #
 # BBRv3, by Google, ported from github.com/google/bbr (branch

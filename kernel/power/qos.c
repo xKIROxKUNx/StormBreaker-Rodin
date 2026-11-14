@@ -38,6 +38,8 @@
 #include <linux/uaccess.h>
 #include <linux/export.h>
 #include <trace/events/power.h>
+
+#include "stormbreaker_lbf.h"
 #include <trace/hooks/power.h>
 
 /*
@@ -551,7 +553,8 @@ int freq_qos_add_request(struct freq_constraints *qos,
 
 	req->qos = qos;
 	req->type = type;
-	ret = freq_qos_apply(req, PM_QOS_ADD_REQ, value);
+	if (!sb_lbf_add(req, value, _RET_IP_, &ret))
+		ret = freq_qos_apply(req, PM_QOS_ADD_REQ, value);
 	if (ret < 0) {
 		req->qos = NULL;
 		req->type = 0;
@@ -575,6 +578,8 @@ EXPORT_SYMBOL_GPL(freq_qos_add_request);
  */
 int freq_qos_update_request(struct freq_qos_request *req, s32 new_value)
 {
+	int ret;
+
 	if (!req || freq_qos_value_invalid(new_value))
 		return -EINVAL;
 
@@ -583,6 +588,8 @@ int freq_qos_update_request(struct freq_qos_request *req, s32 new_value)
 		return -EINVAL;
 
 	trace_android_vh_freq_qos_update_request(req, new_value);
+	if (sb_lbf_update(req, new_value, &ret))
+		return ret;
 	if (req->pnode.prio == new_value)
 		return 0;
 
@@ -612,6 +619,7 @@ int freq_qos_remove_request(struct freq_qos_request *req)
 		return -EINVAL;
 
 	trace_android_vh_freq_qos_remove_request(req);
+	sb_lbf_remove(req);
 	ret = freq_qos_apply(req, PM_QOS_REMOVE_REQ, PM_QOS_DEFAULT_VALUE);
 	req->qos = NULL;
 	req->type = 0;
